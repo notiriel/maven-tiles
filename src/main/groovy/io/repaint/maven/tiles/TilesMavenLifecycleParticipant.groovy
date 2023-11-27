@@ -26,6 +26,7 @@ import org.apache.maven.artifact.Artifact
 import org.apache.maven.artifact.DefaultArtifact
 import org.apache.maven.artifact.handler.DefaultArtifactHandler
 import org.apache.maven.artifact.repository.ArtifactRepositoryPolicy
+import org.apache.maven.artifact.repository.Authentication
 import org.apache.maven.artifact.repository.MavenArtifactRepository
 import org.apache.maven.artifact.repository.layout.ArtifactRepositoryLayout
 import org.apache.maven.artifact.resolver.ArtifactNotFoundException
@@ -71,6 +72,7 @@ import org.apache.maven.shared.filtering.MavenResourcesFiltering
 import org.codehaus.plexus.util.xml.Xpp3Dom
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException
 import org.eclipse.aether.impl.VersionRangeResolver
+import org.eclipse.aether.repository.AuthenticationContext
 import org.eclipse.aether.resolution.VersionRangeRequest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -361,28 +363,35 @@ class TilesMavenLifecycleParticipant extends AbstractMavenLifecycleParticipant {
 
 		if (distributionManagement) {
 			if (distributionManagement.repository) {
-
-				ArtifactRepositoryLayout layout = repositoryLayouts.get(distributionManagement.repository.layout);
-				MavenArtifactRepository repo = new MavenArtifactRepository(
-						distributionManagement.repository.id,
-						getReleaseDistributionManagementRepositoryUrl(project),
-						layout,
-						getArtifactRepositoryPolicy(distributionManagement.repository.snapshots),
-						getArtifactRepositoryPolicy(distributionManagement.repository.releases))
-				project.setReleaseArtifactRepository(repo)
+				var candidate = project.getRemoteArtifactRepositories().find {	it.id == distributionManagement.repository.id }
+				if( candidate !=null && candidate instanceof MavenArtifactRepository) {
+					project.setReleaseArtifactRepository(candidate)
+				} else {
+					ArtifactRepositoryLayout layout = repositoryLayouts.get(distributionManagement.repository.layout);
+					MavenArtifactRepository repo = new MavenArtifactRepository(
+							distributionManagement.repository.id,
+							getReleaseDistributionManagementRepositoryUrl(project),
+							layout,
+							getArtifactRepositoryPolicy(distributionManagement.repository.snapshots),
+							getArtifactRepositoryPolicy(distributionManagement.repository.releases))
+					project.setReleaseArtifactRepository(repo)
+				}
 
 			}
 			if (distributionManagement.snapshotRepository) {
-
-				ArtifactRepositoryLayout layout = repositoryLayouts.get(distributionManagement.snapshotRepository.layout);
-				MavenArtifactRepository repo = new MavenArtifactRepository(
-						distributionManagement.snapshotRepository.id,
-						getSnapshotDistributionManagementRepositoryUrl(project),
-						layout,
-						getArtifactRepositoryPolicy(distributionManagement.snapshotRepository.snapshots),
-						getArtifactRepositoryPolicy(distributionManagement.snapshotRepository.releases))
-				project.setSnapshotArtifactRepository(repo)
-
+				var candidate = project.getRemoteArtifactRepositories().find {	it.id == distributionManagement.snapshotRepository.id }
+				if( candidate !=null && candidate instanceof MavenArtifactRepository) {
+					project.setSnapshotArtifactRepository(candidate)
+				} else {
+					ArtifactRepositoryLayout layout = repositoryLayouts.get(distributionManagement.snapshotRepository.layout);
+					MavenArtifactRepository repo = new MavenArtifactRepository(
+							distributionManagement.snapshotRepository.id,
+							getSnapshotDistributionManagementRepositoryUrl(project),
+							layout,
+							getArtifactRepositoryPolicy(distributionManagement.snapshotRepository.snapshots),
+							getArtifactRepositoryPolicy(distributionManagement.snapshotRepository.releases))
+					project.setSnapshotArtifactRepository(repo)
+				}
 			}
 		}
 	}
